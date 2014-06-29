@@ -198,7 +198,11 @@ enum opcodetype
     OP_NOP9 = 0xb8,
     OP_NOP10 = 0xb9,
 
-
+    // escrow
+    OP_ESCROW1 = 0xc0,
+    OP_ESCROW2 = 0xc1,
+    OP_COMMIT = 0xc2,
+    OP_ABORT = 0xc3,
 
     // template matching params
     OP_SMALLINTEGER = 0xfa,

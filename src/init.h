@@ -6,8 +6,10 @@
 #define BITCOIN_INIT_H
 
 #include "wallet.h"
+#include "vote.h"
 
 extern CWallet* pwalletMain;
+extern CVote* pvoteMain;
 
 void StartShutdown();
 bool ShutdownRequested();

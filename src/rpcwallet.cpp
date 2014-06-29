@@ -79,6 +79,10 @@ Value getinfo(const Array& params, bool fHelp)
     obj.push_back(Pair("connections",   (int)vNodes.size()));
     obj.push_back(Pair("proxy",         (proxy.first.IsValid() ? proxy.first.ToStringIPPort() : string())));
     obj.push_back(Pair("difficulty",    (double)GetDifficulty()));
+    obj.push_back(Pair("supply",        (boost::int64_t)pindexBest->getSupply()));
+    obj.push_back(Pair("maxmoney",      (boost::int64_t)nMaxSupply));
+    obj.push_back(Pair("reward",        (uint16_t)GetCurrentBlockReward(pindexBest)));
+    obj.push_back(Pair("vote",          (uint16_t)nBlockRewardVote));
     obj.push_back(Pair("testnet",       fTestNet));
     obj.push_back(Pair("keypoololdest", (boost::int64_t)pwalletMain->GetOldestKeyPoolTime()));
     obj.push_back(Pair("keypoolsize",   pwalletMain->GetKeyPoolSize()));
@@ -1259,7 +1263,7 @@ Value keypoolrefill(const Array& params, bool fHelp)
 void ThreadTopUpKeyPool(void* parg)
 {
     // Make this thread recognisable as the key-topping-up thread
-    RenameThread("bitcoin-key-top");
+    RenameThread("heavycoin-key-top");
 
     pwalletMain->TopUpKeyPool();
 }
@@ -1267,7 +1271,7 @@ void ThreadTopUpKeyPool(void* parg)
 void ThreadCleanWalletPassphrase(void* parg)
 {
     // Make this thread recognisable as the wallet relocking thread
-    RenameThread("bitcoin-lock-wa");
+    RenameThread("heavycoin-lock-wa");
 
     int64 nMyWakeTime = GetTimeMillis() + *((int64*)parg) * 1000;
 

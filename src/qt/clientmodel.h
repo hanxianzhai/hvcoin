@@ -4,6 +4,7 @@
 #include <QObject>
 
 class OptionsModel;
+class VoteModel;
 class AddressTableModel;
 class TransactionTableModel;
 class CWallet;
@@ -26,10 +27,11 @@ class ClientModel : public QObject
     Q_OBJECT
 
 public:
-    explicit ClientModel(OptionsModel *optionsModel, QObject *parent = 0);
+    explicit ClientModel(OptionsModel *optionsModel, VoteModel *voteModel, QObject *parent = 0);
     ~ClientModel();
 
     OptionsModel *getOptionsModel();
+    VoteModel *getVoteModel();
 
     int getNumConnections() const;
     int getNumBlocks() const;
@@ -57,6 +59,7 @@ public:
 
 private:
     OptionsModel *optionsModel;
+    VoteModel *voteModel;
 
     int cachedNumBlocks;
     int cachedNumBlocksOfPeers;

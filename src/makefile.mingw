@@ -43,7 +43,7 @@ LIBS= \
  -l ssl \
  -l crypto
 
-DEFS=-DWIN32 -D_WINDOWS -DBOOST_THREAD_USE_LIB -DBOOST_SPIRIT_THREADSAFE
+DEFS=-DWIN32 -D_WINDOWS -DBOOST_THREAD_USE_LIB -DBOOST_SPIRIT_THREADSAFE -DHAVE_BUILD_INFO
 DEBUGFLAGS=-g
 CFLAGS=-mthreads -O2 -w -Wall -Wextra -Wformat -Wformat-security -Wno-unused-parameter $(DEBUGFLAGS) $(DEFS) $(INCLUDEPATHS)
 # enable: ASLR, DEP and large address aware
@@ -69,7 +69,12 @@ LIBS += -l kernel32 -l user32 -l gdi32 -l comdlg32 -l winspool -l winmm -l shell
 HEADERS = $(wildcard *.h)
 
 OBJS= \
+    build.h \
     leveldb/libleveldb.a \
+    obj/hefty1.o \
+    obj/keccak.o \
+    obj/groestl.o \
+    obj/blake.o \
     obj/alert.o \
     obj/version.o \
     obj/checkpoints.o \
@@ -102,10 +107,14 @@ OBJS= \
     obj/txdb.o
 
 
-all: bitcoind.exe
+all: heavycoind.exe
 
-test check: test_bitcoin.exe FORCE
-	test_bitcoin.exe
+
+test check: test_heavycoin.exe FORCE
+	heavy_bitcoin.exe
+
+build.h: ../build/build.h
+	cp ../build/build.h .
 
 #
 # LevelDB support
@@ -119,7 +128,10 @@ leveldb/libleveldb.a:
 obj/%.o: %.cpp $(HEADERS)
 	$(CXX) -c $(CFLAGS) -o $@ $<
 
-bitcoind.exe: $(OBJS:obj/%=obj/%)
+obj/%.o: %.c $(HEADERS)
+	$(CXX) -c $(CFLAGS) -o $@ $<
+
+heavycoind.exe: $(OBJS:obj/%=obj/%)
 	$(CXX) $(CFLAGS) $(LDFLAGS) -o $@ $(LIBPATHS) $^ $(LIBS)
 
 TESTOBJS := $(patsubst test/%.cpp,obj-test/%.o,$(wildcard test/*.cpp))
@@ -127,11 +139,11 @@ TESTOBJS := $(patsubst test/%.cpp,obj-test/%.o,$(wildcard test/*.cpp))
 obj-test/%.o: test/%.cpp $(HEADERS)
 	$(CXX) -c $(TESTDEFS) $(CFLAGS) -o $@ $<
 
-test_bitcoin.exe: $(TESTOBJS) $(filter-out obj/init.o,$(OBJS:obj/%=obj/%))
+test_heavycoin.exe: $(TESTOBJS) $(filter-out obj/init.o,$(OBJS:obj/%=obj/%))
 	$(CXX) $(CFLAGS) $(LDFLAGS) -o $@ $(LIBPATHS) $^ -lboost_unit_test_framework$(BOOST_SUFFIX) $(LIBS)
 
 clean:
-	rm -f bitcoind.exe test_bitcoin.exe
+	rm -f heavycoind.exe test_heavycoin.exe
 	rm -f obj/*
 	rm -f obj-test/*
 	cd leveldb && $(MAKE) TARGET_OS=NATIVE_WINDOWS clean && cd ..

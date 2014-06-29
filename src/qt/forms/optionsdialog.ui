@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>540</width>
-    <height>380</height>
+    <height>441</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -77,12 +77,113 @@
         </layout>
        </item>
        <item>
+        <widget class="QCheckBox" name="generate">
+         <property name="text">
+          <string>Mine Heavycoins</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout">
+         <item>
+          <widget class="QLabel" name="label_2">
+           <property name="text">
+            <string>Mining threads</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QSpinBox" name="generateThreads"/>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer_3">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_3_Main">
+         <item>
+          <widget class="QLabel" name="blockRewardLabel">
+           <property name="text">
+            <string>Vote on block reward</string>
+           </property>
+           <property name="buddy">
+            <cstring>blockRewardVote</cstring>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QSpinBox" name="blockRewardVote">
+           <property name="enabled">
+            <bool>true</bool>
+           </property>
+           <property name="minimum">
+            <number>0</number>
+           </property>
+           <property name="maximum">
+            <number>2048</number>
+           </property>
+           <property name="value">
+            <number>16</number>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label">
+           <property name="text">
+            <string>HVC</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeType">
+            <enum>QSizePolicy::Expanding</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>100</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="showVotingOverview">
+         <property name="text">
+          <string>Show block reward voting on overview page</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="showSupplyOverview">
+         <property name="text">
+          <string>Show money supply on overview page</string>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="QCheckBox" name="bitcoinAtStartup">
          <property name="toolTip">
-          <string>Automatically start Bitcoin after logging in to the system.</string>
+          <string>Automatically start Heavycoin after logging in to the system.</string>
          </property>
          <property name="text">
-          <string>&amp;Start Bitcoin on system login</string>
+          <string>&amp;Start Heavycoin on system login</string>
          </property>
         </widget>
        </item>
@@ -139,7 +240,7 @@
        <item>
         <widget class="QCheckBox" name="mapPortUpnp">
          <property name="toolTip">
-          <string>Automatically open the Bitcoin client port on the router. This only works when your router supports UPnP and it is enabled.</string>
+          <string>Automatically open the Heavycoin client port on the router. This only works when your router supports UPnP and it is enabled.</string>
          </property>
          <property name="text">
           <string>Map port using &amp;UPnP</string>
@@ -149,7 +250,7 @@
        <item>
         <widget class="QCheckBox" name="connectSocks">
          <property name="toolTip">
-          <string>Connect to the Bitcoin network through a SOCKS proxy (e.g. when connecting through Tor).</string>
+          <string>Connect to the Heavycoin network through a SOCKS proxy (e.g. when connecting through Tor).</string>
          </property>
          <property name="text">
           <string>&amp;Connect through SOCKS proxy:</string>
@@ -323,7 +424,7 @@
          <item>
           <widget class="QValueComboBox" name="lang">
            <property name="toolTip">
-            <string>The user interface language can be set here. This setting will take effect after restarting Bitcoin.</string>
+            <string>The user interface language can be set here. This setting will take effect after restarting Heavycoin.</string>
            </property>
           </widget>
          </item>
@@ -356,7 +457,7 @@
        <item>
         <widget class="QCheckBox" name="displayAddresses">
          <property name="toolTip">
-          <string>Whether to show Bitcoin addresses in the transaction list or not.</string>
+          <string>Whether to show Heavycoin addresses in the transaction list or not.</string>
          </property>
          <property name="text">
           <string>&amp;Display addresses in transaction list</string>

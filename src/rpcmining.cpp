@@ -11,6 +11,61 @@
 using namespace json_spirit;
 using namespace std;
 
+// Return average network hashes per second based on the last 'lookup' blocks,
+// or from the last difficulty change if 'lookup' is nonpositive.
+// If 'height' is nonnegative, compute the estimate at the time when a given block was found.
+Value GetNetworkHashPS(int lookup, int height) {
+    CBlockIndex *pb = pindexBest;
+
+    if (height >= 0 && height < nBestHeight)
+        pb = FindBlockByHeight(height);
+
+    if (pb == NULL || !pb->nHeight)
+        return 0;
+
+    // If lookup is -1, then use blocks since last difficulty change.
+    // Heavycoin difficulty changes every block on downward diff an
+    // every nInterval blocks on upward.  To keep it simple, just go
+    // back nInterval.
+    if (lookup <= 0)
+        lookup = pb->nHeight % nInterval + 1;
+
+    // If lookup is larger than chain, then set it to chain length.
+    if (lookup > pb->nHeight)
+        lookup = pb->nHeight;
+
+    CBlockIndex *pb0 = pb;
+    int64 minTime = pb0->GetBlockTime();
+    int64 maxTime = minTime;
+    for (int i = 0; i < lookup; i++) {
+        pb0 = pb0->pprev;
+        int64 time = pb0->GetBlockTime();
+        minTime = std::min(time, minTime);
+        maxTime = std::max(time, maxTime);
+    }
+
+    // In case there's a situation where minTime == maxTime, we don't want a divide by zero exception.
+    if (minTime == maxTime)
+        return 0;
+
+    uint256 workDiff = pb->nChainWork - pb0->nChainWork;
+    int64 timeDiff = maxTime - minTime;
+
+    return (boost::int64_t)(workDiff.getdouble() / timeDiff);
+}
+
+Value getnetworkhashps(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() > 2)
+        throw runtime_error(
+            "getnetworkhashps [blocks] [height]\n"
+            "Returns the estimated network hashes per second based on the last 120 blocks.\n"
+            "Pass in [blocks] to override # of blocks, -1 specifies since last difficulty change.\n"
+            "Pass in [height] to estimate the network speed at the time when a certain block was found.");
+
+    return GetNetworkHashPS(params.size() > 0 ? params[0].get_int() : 120, params.size() > 1 ? params[1].get_int() : -1);
+}
+
 Value getgenerate(const Array& params, bool fHelp)
 {
     if (fHelp || params.size() != 0)
@@ -47,6 +102,134 @@ Value setgenerate(const Array& params, bool fHelp)
     return Value::null;
 }
 
+Value setvote(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() != 1) {
+        std::stringstream ss;
+        ss << nBlockRewardVoteLimit;
+        throw runtime_error("setvote <block-reward-vote>\n"
+                            "<block-reward-vote> is a positive integer "
+                            "between 0 and " + ss.str() + " or -1 for max\n");
+    }
+
+    uint16_t nVote = (uint16_t)params[0].get_int();
+    if (nVote > nBlockRewardVoteLimit)
+        nVote = nBlockRewardVoteLimit;
+
+    nBlockRewardVote = nVote;
+    return true;
+}
+
+Value getvote(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() != 0)
+        throw runtime_error(
+            "getvote\n"
+            "Returns your current block reward vote.");
+
+    return (boost::int64_t)nBlockRewardVote;
+}
+
+Value getmaxvote(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() != 0)
+        throw runtime_error(
+            "getmaxvote\n"
+            "Returns the max block reward vote for the current phase.");
+
+    return (boost::int64_t)nBlockRewardVoteLimit;
+}
+
+Value getnextrewardestimate(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() > 1)
+        throw runtime_error(
+            "getnextrewardestimate [height]\n"
+            "Returns an estimate of the next block reward based on decentralized voting.\n"
+            "Pass in [height] to show the historic block reward estimate at a given height.\n");
+
+
+    CBlockIndex *pb = pindexBest;
+    if (params.size() > 0) {
+        int height = params[0].get_int();
+        if (height >= 0 && height < nBestHeight)
+            pb = FindBlockByHeight(height);
+
+        if (pb == NULL || !pb->nHeight)
+            return 0;
+    }
+
+    return (boost::int64_t)GetNextBlockReward(pb);
+}
+
+Value getnextrewardwhenstr(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() != 0)
+        throw runtime_error(
+            "getnextrewardwhenstr\n"
+            "Returns an estimate of how long until the block reward votes will be tallied (human readable).");
+
+    return pvoteMain->GetWhen();
+}
+
+Value getnextrewardwhensec(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() != 0)
+        throw runtime_error(
+            "getnextrewardwhensec\n"
+            "Returns an estimate of the number of seconds until the block reward votes are tallied.");
+
+    return pvoteMain->GetWhenSec();
+}
+
+Value getphase(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() != 0)
+        throw runtime_error(
+            "getphase\n"
+            "Returns the current voting phase.");
+
+    switch (nPhase) {
+    case 1:
+        return "Mint";
+    case 2:
+        return "Limit";
+    case 3:
+        return "Sustain";
+    default:
+	return "Unknown";
+    }
+}
+
+Value getreward(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() != 0)
+        throw runtime_error(
+            "getreward\n"
+            "Returns the current block reward, according to decentralised voting.");
+
+    return (boost::int64_t)GetCurrentBlockReward(pindexBest);
+}
+
+Value getsupply(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() != 0)
+        throw runtime_error(
+            "getsupply\n"
+            "Returns the current money supply.");
+
+    return (boost::int64_t)pindexBest->getSupply();
+}
+
+Value getmaxmoney(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() != 0)
+        throw runtime_error(
+            "getmaxmoney\n"
+            "Returns the maximum possible money supply (ever).");
+
+    return (boost::int64_t)nMaxSupply;
+}
 
 Value gethashespersec(const Array& params, bool fHelp)
 {
@@ -73,10 +256,13 @@ Value getmininginfo(const Array& params, bool fHelp)
     obj.push_back(Pair("currentblocksize",(uint64_t)nLastBlockSize));
     obj.push_back(Pair("currentblocktx",(uint64_t)nLastBlockTx));
     obj.push_back(Pair("difficulty",    (double)GetDifficulty()));
+    obj.push_back(Pair("reward",        (uint16_t)GetCurrentBlockReward(pindexBest)));
+    obj.push_back(Pair("vote",          (uint16_t)nBlockRewardVote));
     obj.push_back(Pair("errors",        GetWarnings("statusbar")));
     obj.push_back(Pair("generate",      GetBoolArg("-gen")));
     obj.push_back(Pair("genproclimit",  (int)GetArg("-genproclimit", -1)));
     obj.push_back(Pair("hashespersec",  gethashespersec(params, false)));
+    obj.push_back(Pair("networkhashps",  getnetworkhashps(params, false)));
     obj.push_back(Pair("pooledtx",      (uint64_t)mempool.size()));
     obj.push_back(Pair("testnet",       fTestNet));
     return obj;
@@ -96,10 +282,10 @@ Value getwork(const Array& params, bool fHelp)
             "If [data] is specified, tries to solve the block and returns true if it was successful.");
 
     if (vNodes.empty())
-        throw JSONRPCError(RPC_CLIENT_NOT_CONNECTED, "Bitcoin is not connected!");
+        throw JSONRPCError(RPC_CLIENT_NOT_CONNECTED, "Heavycoin is not connected!");
 
     if (IsInitialBlockDownload())
-        throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Bitcoin is downloading blocks...");
+        throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Heavycoin is downloading blocks...");
 
     typedef map<uint256, pair<CBlock*, CScript> > mapNewBlock_t;
     static mapNewBlock_t mapNewBlock;    // FIXME: thread safety
@@ -155,18 +341,17 @@ Value getwork(const Array& params, bool fHelp)
         mapNewBlock[pblock->hashMerkleRoot] = make_pair(pblock, pblock->vtx[0].vin[0].scriptSig);
 
         // Pre-build hash buffers
-        char pmidstate[32];
+        // Time precludes scanhash implemention, so provide a simple
+        // interface for RPC mining
         char pdata[128];
-        char phash1[64];
-        FormatHashBuffers(pblock, pmidstate, pdata, phash1);
+        FormatHashBuffers(pblock, pdata);
 
         uint256 hashTarget = CBigNum().SetCompact(pblock->nBits).getuint256();
 
         Object result;
-        result.push_back(Pair("midstate", HexStr(BEGIN(pmidstate), END(pmidstate)))); // deprecated
         result.push_back(Pair("data",     HexStr(BEGIN(pdata), END(pdata))));
-        result.push_back(Pair("hash1",    HexStr(BEGIN(phash1), END(phash1)))); // deprecated
         result.push_back(Pair("target",   HexStr(BEGIN(hashTarget), END(hashTarget))));
+        result.push_back(Pair("maxvote",  HexStr(BEGIN(nBlockRewardVoteLimit), END(nBlockRewardVote))));
         return result;
     }
     else
@@ -177,10 +362,6 @@ Value getwork(const Array& params, bool fHelp)
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter");
         CBlock* pdata = (CBlock*)&vchData[0];
 
-        // Byte reverse
-        for (int i = 0; i < 128/4; i++)
-            ((unsigned int*)pdata)[i] = ByteReverse(((unsigned int*)pdata)[i]);
-
         // Get saved block
         if (!mapNewBlock.count(pdata->hashMerkleRoot))
             return false;
@@ -188,13 +369,13 @@ Value getwork(const Array& params, bool fHelp)
 
         pblock->nTime = pdata->nTime;
         pblock->nNonce = pdata->nNonce;
+        pblock->nVote = pdata->nVote;
         pblock->vtx[0].vin[0].scriptSig = mapNewBlock[pdata->hashMerkleRoot].second;
         pblock->hashMerkleRoot = pblock->BuildMerkleTree();
 
         return CheckWork(pblock, *pwalletMain, *pMiningKey);
     }
 }
-
 
 Value getblocktemplate(const Array& params, bool fHelp)
 {
@@ -208,6 +389,7 @@ Value getblocktemplate(const Array& params, bool fHelp)
             "  \"coinbaseaux\" : data that should be included in coinbase\n"
             "  \"coinbasevalue\" : maximum allowable input to coinbase transaction, including the generation award and transaction fees\n"
             "  \"target\" : hash target\n"
+            "  \"reward\" : current block reward\n"
             "  \"mintime\" : minimum timestamp appropriate for next block\n"
             "  \"curtime\" : current timestamp\n"
             "  \"mutable\" : list of ways the block template may be changed\n"
@@ -237,10 +419,10 @@ Value getblocktemplate(const Array& params, bool fHelp)
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid mode");
 
     if (vNodes.empty())
-        throw JSONRPCError(RPC_CLIENT_NOT_CONNECTED, "Bitcoin is not connected!");
+        throw JSONRPCError(RPC_CLIENT_NOT_CONNECTED, "Heavycoin is not connected!");
 
     if (IsInitialBlockDownload())
-        throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Bitcoin is downloading blocks...");
+        throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Heavycoin is downloading blocks...");
 
     // Update block
     static unsigned int nTransactionsUpdatedLast;
@@ -331,6 +513,7 @@ Value getblocktemplate(const Array& params, bool fHelp)
     result.push_back(Pair("coinbaseaux", aux));
     result.push_back(Pair("coinbasevalue", (int64_t)pblock->vtx[0].vout[0].nValue));
     result.push_back(Pair("target", hashTarget.GetHex()));
+    result.push_back(Pair("reward", pblock->nReward));
     result.push_back(Pair("mintime", (int64_t)pindexPrev->GetMedianTimePast()+1));
     result.push_back(Pair("mutable", aMutable));
     result.push_back(Pair("noncerange", "00000000ffffffff"));

@@ -41,6 +41,8 @@ OptionsDialog::OptionsDialog(QWidget *parent) :
     connect(ui->connectSocks, SIGNAL(toggled(bool)), ui->socksVersion, SLOT(setEnabled(bool)));
     connect(ui->connectSocks, SIGNAL(clicked(bool)), this, SLOT(showRestartWarning_Proxy()));
 
+    connect(ui->generate, SIGNAL(toggled(bool)), this, SLOT(generateChanged(bool)));
+
     ui->proxyIp->installEventFilter(this);
 
     /* Window elements init */
@@ -98,6 +100,15 @@ OptionsDialog::~OptionsDialog()
     delete ui;
 }
 
+void OptionsDialog::generateChanged(bool generate)
+{
+    ui->generateThreads->setEnabled(generate);
+    ui->blockRewardVote->setEnabled(generate);
+    ui->label_2->setEnabled(generate);
+    ui->blockRewardLabel->setEnabled(generate);
+    ui->label->setEnabled(generate);
+}
+
 void OptionsDialog::setModel(OptionsModel *model)
 {
     this->model = model;
@@ -119,12 +130,19 @@ void OptionsDialog::setModel(OptionsModel *model)
 
     /* disable apply button after settings are loaded as there is nothing to save */
     disableApplyButton();
+
+    generateChanged(model->getGenerate());
 }
 
 void OptionsDialog::setMapper()
 {
     /* Main */
     mapper->addMapping(ui->transactionFee, OptionsModel::Fee);
+    mapper->addMapping(ui->generateThreads, OptionsModel::GenerateThreads);
+    mapper->addMapping(ui->generate, OptionsModel::Generate);
+    mapper->addMapping(ui->blockRewardVote, OptionsModel::Vote);
+    mapper->addMapping(ui->showVotingOverview, OptionsModel::ShowVotingOverview);
+    mapper->addMapping(ui->showSupplyOverview, OptionsModel::ShowSupplyOverview);
     mapper->addMapping(ui->bitcoinAtStartup, OptionsModel::StartAtStartup);
 
     /* Network */
@@ -223,7 +241,7 @@ void OptionsDialog::showRestartWarning_Proxy()
 {
     if(!fRestartWarningDisplayed_Proxy)
     {
-        QMessageBox::warning(this, tr("Warning"), tr("This setting will take effect after restarting Bitcoin."), QMessageBox::Ok);
+        QMessageBox::warning(this, tr("Warning"), tr("This setting will take effect after restarting Heavycoin."), QMessageBox::Ok);
         fRestartWarningDisplayed_Proxy = true;
     }
 }
@@ -232,7 +250,7 @@ void OptionsDialog::showRestartWarning_Lang()
 {
     if(!fRestartWarningDisplayed_Lang)
     {
-        QMessageBox::warning(this, tr("Warning"), tr("This setting will take effect after restarting Bitcoin."), QMessageBox::Ok);
+        QMessageBox::warning(this, tr("Warning"), tr("This setting will take effect after restarting Heavycoin."), QMessageBox::Ok);
         fRestartWarningDisplayed_Lang = true;
     }
 }

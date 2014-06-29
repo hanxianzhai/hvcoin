@@ -26,6 +26,11 @@ public:
         ProxyPort,         // int
         ProxySocksVersion, // int
         Fee,               // qint64
+        GenerateThreads,   // int
+        Generate,          // bool
+        Vote,              // unsigned int
+        ShowVotingOverview, // bool
+        ShowSupplyOverview, // bool
         DisplayUnit,       // BitcoinUnits::Unit
         DisplayAddresses,  // bool
         Language,          // QString
@@ -44,6 +49,11 @@ public:
 
     /* Explicit getters */
     qint64 getTransactionFee();
+    unsigned int getBlockRewardVote();
+    bool getGenerate();
+    int getGenerateThreads();
+    bool getShowVotingOverview();
+    bool getShowSupplyOverview();
     bool getMinimizeToTray() { return fMinimizeToTray; }
     bool getMinimizeOnClose() { return fMinimizeOnClose; }
     int getDisplayUnit() { return nDisplayUnit; }
@@ -56,9 +66,13 @@ private:
     bool fMinimizeToTray;
     bool fMinimizeOnClose;
     QString language;
+    bool bShowVotingOverview;
+    bool bShowSupplyOverview;
 
 signals:
     void displayUnitChanged(int unit);
+    void votingShowChanged(bool fShow);
+    void supplyShowChanged(bool fShow);
 };
 
 #endif // OPTIONSMODEL_H

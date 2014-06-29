@@ -129,6 +129,7 @@ extern int64 nWalletUnlockTime;
 extern int64 AmountFromValue(const json_spirit::Value& value);
 extern json_spirit::Value ValueFromAmount(int64 amount);
 extern double GetDifficulty(const CBlockIndex* blockindex = NULL);
+extern double CalcDifficulty(const unsigned int nBits);
 extern std::string HexBits(unsigned int nBits);
 extern std::string HelpRequiringPassphrase();
 extern void EnsureWalletIsUnlocked();
@@ -142,7 +143,18 @@ extern json_spirit::Value importprivkey(const json_spirit::Array& params, bool f
 
 extern json_spirit::Value getgenerate(const json_spirit::Array& params, bool fHelp); // in rpcmining.cpp
 extern json_spirit::Value setgenerate(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value setvote(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value getvote(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value getmaxvote(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value getphase(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value getnextrewardestimate(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value getnextrewardwhenstr(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value getnextrewardwhensec(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value getreward(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value getsupply(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value getmaxmoney(const json_spirit::Array& params, bool fHelp);
 extern json_spirit::Value gethashespersec(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value getnetworkhashps(const json_spirit::Array& params, bool fHelp);
 extern json_spirit::Value getmininginfo(const json_spirit::Array& params, bool fHelp);
 extern json_spirit::Value getwork(const json_spirit::Array& params, bool fHelp);
 extern json_spirit::Value getblocktemplate(const json_spirit::Array& params, bool fHelp);

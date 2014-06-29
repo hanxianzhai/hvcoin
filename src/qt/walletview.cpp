@@ -97,6 +97,7 @@ void WalletView::setClientModel(ClientModel *clientModel)
     if (clientModel)
     {
         overviewPage->setClientModel(clientModel);
+        overviewPage->setVoteModel(clientModel->getVoteModel());
         addressBookPage->setOptionsModel(clientModel->getOptionsModel());
         receiveCoinsPage->setOptionsModel(clientModel->getOptionsModel());
     }

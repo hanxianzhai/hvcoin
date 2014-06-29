@@ -1,7 +1,7 @@
 TEMPLATE = app
-TARGET = bitcoin-qt
-macx:TARGET = "Bitcoin-Qt"
-VERSION = 0.8.3
+TARGET = heavycoin-qt
+macx:TARGET = "Heavycoin-Qt"
+VERSION = 0.9
 INCLUDEPATH += src src/json src/qt
 QT += network
 DEFINES += QT_GUI BOOST_THREAD_USE_LIB BOOST_SPIRIT_THREADSAFE
@@ -71,6 +71,7 @@ contains(USE_UPNP, -) {
     DEFINES += USE_UPNP=$$USE_UPNP STATICLIB
     INCLUDEPATH += $$MINIUPNPC_INCLUDE_PATH
     LIBS += $$join(MINIUPNPC_LIB_PATH,,-L,) -lminiupnpc
+
     win32:LIBS += -liphlpapi
 }
 
@@ -142,6 +143,11 @@ HEADERS += src/qt/bitcoingui.h \
     src/qt/aboutdialog.h \
     src/qt/editaddressdialog.h \
     src/qt/bitcoinaddressvalidator.h \
+    src/hefty1.h \
+    src/sph_blake.h \
+    src/sph_keccak.h \
+    src/sph_groestl.h \
+    src/sph_types.h \
     src/alert.h \
     src/addrman.h \
     src/base58.h \
@@ -186,6 +192,7 @@ HEADERS += src/qt/bitcoingui.h \
     src/qt/transactionfilterproxy.h \
     src/qt/transactionview.h \
     src/qt/walletmodel.h \
+    src/qt/votemodel.h \
     src/qt/walletview.h \
     src/qt/walletstack.h \
     src/qt/walletframe.h \
@@ -224,6 +231,10 @@ SOURCES += src/qt/bitcoin.cpp \
     src/qt/aboutdialog.cpp \
     src/qt/editaddressdialog.cpp \
     src/qt/bitcoinaddressvalidator.cpp \
+    src/hefty1.cpp \
+    src/blake.c \
+    src/keccak.c \
+    src/groestl.c \
     src/alert.cpp \
     src/version.cpp \
     src/sync.cpp \
@@ -254,6 +265,7 @@ SOURCES += src/qt/bitcoin.cpp \
     src/qt/transactionfilterproxy.cpp \
     src/qt/transactionview.cpp \
     src/qt/walletmodel.cpp \
+    src/qt/votemodel.cpp \
     src/qt/walletview.cpp \
     src/qt/walletstack.cpp \
     src/qt/walletframe.cpp \

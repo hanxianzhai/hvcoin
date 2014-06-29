@@ -43,7 +43,7 @@ static boost::thread_group* rpc_worker_group = NULL;
 
 static inline unsigned short GetDefaultRPCPort()
 {
-    return GetBoolArg("-testnet", false) ? 18332 : 8332;
+    return GetBoolArg("-testnet", false) ? 17202 : 7202;
 }
 
 Object JSONRPCError(int code, const string& message)
@@ -186,7 +186,7 @@ Value stop(const Array& params, bool fHelp)
             "Stop Bitcoin server.");
     // Shutdown will take long enough that the response should get back
     StartShutdown();
-    return "Bitcoin server stopping";
+    return "Heavycoin server stopping";
 }
 
 
@@ -209,7 +209,18 @@ static const CRPCCommand vRPCCommands[] =
     { "getdifficulty",          &getdifficulty,          true,      false },
     { "getgenerate",            &getgenerate,            true,      false },
     { "setgenerate",            &setgenerate,            true,      false },
+    { "getvote",                &getvote,                true,      false },
+    { "getmaxvote",             &getmaxvote,             true,      false },
+    { "getphase",               &getphase,               true,      false },
+    { "getnextrewardestimate",  &getnextrewardestimate , true,      false },
+    { "getnextrewardwhenstr",   &getnextrewardwhenstr ,  true,      false },
+    { "getnextrewardwhensec",   &getnextrewardwhensec ,  true,      false },
+    { "setvote",                &setvote,                true,      false },
+    { "getreward",              &getreward,              true,      false },
+    { "getsupply",              &getsupply,              true,      false },
+    { "getmaxmoney",            &getmaxmoney,            true,      false },
     { "gethashespersec",        &gethashespersec,        true,      false },
+    { "getnetworkhashps",       &getnetworkhashps,       true,      false },
     { "getinfo",                &getinfo,                true,      false },
     { "getmininginfo",          &getmininginfo,          true,      false },
     { "getnewaddress",          &getnewaddress,          true,      false },
@@ -744,13 +755,13 @@ void StartRPCThreads()
             _("%s, you must set a rpcpassword in the configuration file:\n"
               "%s\n"
               "It is recommended you use the following random password:\n"
-              "rpcuser=bitcoinrpc\n"
+              "rpcuser=heavycoinrpc\n"
               "rpcpassword=%s\n"
               "(you do not need to remember this password)\n"
               "The username and password MUST NOT be the same.\n"
               "If the file does not exist, create it with owner-readable-only file permissions.\n"
               "It is also recommended to set alertnotify so you are notified of problems;\n"
-              "for example: alertnotify=echo %%s | mail -s \"Bitcoin Alert\" admin@foo.com\n"),
+              "for example: alertnotify=echo %%s | mail -s \"Heavycoin Alert\" admin@foo.com\n"),
                 strWhatAmI.c_str(),
                 GetConfigFile().string().c_str(),
                 EncodeBase58(&rand_pwd[0],&rand_pwd[0]+32).c_str()),
@@ -1147,6 +1158,10 @@ Array RPCConvertValues(const std::string &strMethod, const std::vector<std::stri
     if (strMethod == "setgenerate"            && n > 1) ConvertTo<boost::int64_t>(params[1]);
     if (strMethod == "sendtoaddress"          && n > 1) ConvertTo<double>(params[1]);
     if (strMethod == "settxfee"               && n > 0) ConvertTo<double>(params[0]);
+    if (strMethod == "setvote"                && n > 0) ConvertTo<boost::int64_t>(params[0]);
+    if (strMethod == "getnetworkhashps"       && n > 0) ConvertTo<int>(params[0]);
+    if (strMethod == "getnetworkhashps"       && n > 1) ConvertTo<int>(params[1]);
+    if (strMethod == "getnextrewardestimate"  && n > 0) ConvertTo<int>(params[0]);
     if (strMethod == "getreceivedbyaddress"   && n > 1) ConvertTo<boost::int64_t>(params[1]);
     if (strMethod == "getreceivedbyaccount"   && n > 1) ConvertTo<boost::int64_t>(params[1]);
     if (strMethod == "listreceivedbyaddress"  && n > 0) ConvertTo<boost::int64_t>(params[0]);

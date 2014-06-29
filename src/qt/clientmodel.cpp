@@ -15,8 +15,8 @@
 
 static const int64 nClientStartupTime = GetTime();
 
-ClientModel::ClientModel(OptionsModel *optionsModel, QObject *parent) :
-    QObject(parent), optionsModel(optionsModel),
+ClientModel::ClientModel(OptionsModel *optionsModel, VoteModel *voteModel, QObject *parent) :
+    QObject(parent), optionsModel(optionsModel), voteModel(voteModel),
     cachedNumBlocks(0), cachedNumBlocksOfPeers(0),
     cachedReindexing(0), cachedImporting(0),
     numBlocksAtStartup(-1), pollTimer(0)
@@ -143,6 +143,11 @@ QString ClientModel::getStatusBarWarnings() const
 OptionsModel *ClientModel::getOptionsModel()
 {
     return optionsModel;
+}
+
+VoteModel *ClientModel::getVoteModel()
+{
+    return voteModel;
 }
 
 QString ClientModel::formatFullVersion() const

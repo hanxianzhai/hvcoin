@@ -47,6 +47,32 @@ void OptionsModel::Init()
     fMinimizeToTray = settings.value("fMinimizeToTray", false).toBool();
     fMinimizeOnClose = settings.value("fMinimizeOnClose", false).toBool();
     nTransactionFee = settings.value("nTransactionFee").toLongLong();
+    if (settings.contains("nBlockRewardVote"))
+        nBlockRewardVote = settings.value("nBlockRewardVote").toUInt();
+    else
+        nBlockRewardVote = nBlockRewardVoteLimit/2;
+
+    if (settings.contains("bShowVotingOverview"))
+        bShowVotingOverview = settings.value("bShowVotingOverview").toBool();
+    else
+        bShowVotingOverview = true;
+
+    if (settings.contains("bShowSupplyOverview"))
+        bShowSupplyOverview = settings.value("bShowSupplyOverview").toBool();
+    else
+        bShowSupplyOverview = true;
+
+    if (settings.contains("nGenerateThreads"))
+        SetGenerateThreads(settings.value("nGenerateThreads").toInt());
+    else
+        SetGenerateThreads(1);
+
+    if (settings.contains("bGenerate"))
+        bGenerate = settings.value("bGenerate").toBool();
+    else
+        bGenerate = false;
+    GenerateBitcoins(bGenerate, pwalletMain);
+
     language = settings.value("language", "").toString();
 
     // These are shared with core Bitcoin; we want
@@ -190,6 +216,16 @@ QVariant OptionsModel::data(const QModelIndex & index, int role) const
         }
         case Fee:
             return QVariant(nTransactionFee);
+        case Vote:
+            return QVariant(nBlockRewardVote);
+        case ShowVotingOverview:
+            return QVariant(bShowVotingOverview);
+        case ShowSupplyOverview:
+            return QVariant(bShowSupplyOverview);
+        case GenerateThreads:
+            return QVariant(nGenerateThreads);
+        case Generate:
+            return QVariant(bGenerate);
         case DisplayUnit:
             return QVariant(nDisplayUnit);
         case DisplayAddresses:
@@ -265,6 +301,28 @@ bool OptionsModel::setData(const QModelIndex & index, const QVariant & value, in
             nTransactionFee = value.toLongLong();
             settings.setValue("nTransactionFee", nTransactionFee);
             break;
+        case Vote:
+            nBlockRewardVote = value.toUInt();
+            settings.setValue("nBlockRewardVote", nBlockRewardVote);
+            break;
+        case ShowVotingOverview:
+            bShowVotingOverview = value.toBool();
+            settings.setValue("bShowVotingOverview", bShowVotingOverview);
+            emit votingShowChanged(bShowVotingOverview);
+            break;
+        case ShowSupplyOverview:
+            bShowSupplyOverview = value.toBool();
+            settings.setValue("bShowSupplyOverview", bShowSupplyOverview);
+            emit supplyShowChanged(bShowSupplyOverview);
+            break;
+        case GenerateThreads:
+            SetGenerateThreads(value.toInt());
+            settings.setValue("nGenerateThreads", nGenerateThreads);
+            break;
+        case Generate:
+            GenerateBitcoins(value.toBool(), pwalletMain);
+            settings.setValue("bGenerate", bGenerate);
+            break;
         case DisplayUnit:
             nDisplayUnit = value.toInt();
             settings.setValue("nDisplayUnit", nDisplayUnit);
@@ -289,4 +347,29 @@ bool OptionsModel::setData(const QModelIndex & index, const QVariant & value, in
 qint64 OptionsModel::getTransactionFee()
 {
     return nTransactionFee;
+}
+
+unsigned int OptionsModel::getBlockRewardVote()
+{
+    return nBlockRewardVote;
+}
+
+bool OptionsModel::getShowVotingOverview()
+{
+    return bShowVotingOverview;
+}
+
+bool OptionsModel::getShowSupplyOverview()
+{
+    return bShowSupplyOverview;
+}
+
+bool OptionsModel::getGenerate()
+{
+    return bGenerate;
+}
+
+int OptionsModel::getGenerateThreads()
+{
+    return nGenerateThreads;
 }

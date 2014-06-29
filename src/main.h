@@ -45,7 +45,22 @@ static const unsigned int UNDOFILE_CHUNK_SIZE = 0x100000; // 1 MiB
 /** Fake height value used in CCoins to signify they are only in the memory pool (since 0.8) */
 static const unsigned int MEMPOOL_HEIGHT = 0x7FFFFFFF;
 /** No amount larger than this (in satoshi) is valid */
-static const int64 MAX_MONEY = 21000000 * COIN;
+
+#define MAX_VOTE 1024
+extern uint16_t nBlockRewardVote;
+extern uint16_t nBlockRewardVoteLimit;
+extern uint16_t nBlockRewardVoteSpan;
+extern uint16_t nPhase;
+extern uint32_t nTarget;
+extern uint32_t nMaxSupply;
+extern const int64 nInterval;
+
+// Release
+static const int64 PHASE1_MONEY = 53000000; // 45,000,000 (min 30D, max 171Y)
+static const int64 PHASE2_BLOCKS = 63476 - nBlockRewardVoteSpan - 1; // 44D (min 0, max 64,948,224)
+static const int64 PHASE3_MONEY = 10000000 + 576; // 10,000,000 + dust to even it out to 128M (min 5Y, max 40Y)
+static const int64 MAX_MONEY = (PHASE1_MONEY + PHASE2_BLOCKS*MAX_VOTE + (nBlockRewardVoteSpan + 1)*MAX_VOTE + PHASE3_MONEY) * COIN;
+
 inline bool MoneyRange(int64 nValue) { return (nValue >= 0 && nValue <= MAX_MONEY); }
 /** Coinbase transaction outputs can only be spent after this number of new blocks (network rule) */
 static const int COINBASE_MATURITY = 100;
@@ -66,7 +81,8 @@ extern CScript COINBASE_FLAGS;
 
 
 
-
+extern bool bGenerate;
+extern int nGenerateThreads;
 extern CCriticalSection cs_main;
 extern std::map<uint256, CBlockIndex*> mapBlockIndex;
 extern std::set<CBlockIndex*, CBlockIndexWorkComparator> setBlockIndexValid;
@@ -96,6 +112,9 @@ extern unsigned int nCoinCacheSize;
 
 // Settings
 extern int64 nTransactionFee;
+extern const int64 nTargetTimespan;
+extern const int64 nDiffWindow;
+extern const uint16_t nVoteSpan;
 
 // Minimum disk space required - used in CheckDiskSpace()
 static const uint64 nMinDiskSpace = 52428800;
@@ -148,6 +167,7 @@ bool ProcessMessages(CNode* pfrom);
 bool SendMessages(CNode* pto, bool fSendTrickle);
 /** Run an instance of the script checking thread */
 void ThreadScriptCheck();
+void SetGenerateThreads(int nThreads);
 /** Run the miner threads */
 void GenerateBitcoins(bool fGenerate, CWallet* pwallet);
 /** Generate a new block, without valid proof-of-work */
@@ -155,7 +175,11 @@ CBlockTemplate* CreateNewBlock(CReserveKey& reservekey);
 /** Modify the extranonce in a block */
 void IncrementExtraNonce(CBlock* pblock, CBlockIndex* pindexPrev, unsigned int& nExtraNonce);
 /** Do mining precalculation */
-void FormatHashBuffers(CBlock* pblock, char* pmidstate, char* pdata, char* phash1);
+void FormatHashBuffers(CBlock* pblock, char* pdata);
+int64 AbsTime(int64 t0, int64 t1);
+void AdjustBlockRewardVoteLimit(CBlockIndex *pindexPrev);
+void CalcWindowedAvgs(CBlockIndex *pindexPrev, int64 nMax, unsigned int nLastBits,
+                      int64 nLastTimespan, CBigNum &bnAvg, float &nAvgTimespan, float &nAvgRatio);
 /** Check mined block */
 bool CheckWork(CBlock* pblock, CWallet& wallet, CReserveKey& reservekey);
 /** Check whether a block hash satisfies the proof-of-work requirement specified by nBits */
@@ -164,6 +188,8 @@ bool CheckProofOfWork(uint256 hash, unsigned int nBits);
 unsigned int ComputeMinWork(unsigned int nBase, int64 nTime);
 /** Get the number of active peers */
 int GetNumBlocksOfPeers();
+uint16_t GetCurrentBlockReward(CBlockIndex *pindexPrev);
+uint16_t GetNextBlockReward(CBlockIndex *pindexPrev);
 /** Check whether we are doing an initial block download (synchronizing from disk or network) */
 bool IsInitialBlockDownload();
 /** Format a string that describes several potential problems detected by the core */
@@ -607,7 +633,7 @@ public:
     {
         // Large (in bytes) low-priority (new, small-coin) transactions
         // need a fee.
-        return dPriority > COIN * 144 / 250;
+        return dPriority > COIN * 720 / 250;
     }
 
     int64 GetMinFee(unsigned int nBlockSize=1, bool fAllowFree=true, enum GetMinFee_mode mode=GMF_BLOCK) const;
@@ -1266,31 +1292,63 @@ public:
     unsigned int nTime;
     unsigned int nBits;
     unsigned int nNonce;
+    uint16_t nVote;
+    uint16_t nReward;
 
     CBlockHeader()
     {
         SetNull();
     }
 
+    void setSupply(uint32_t supply)
+    {
+        if(supply > 0x07ffffff)
+            supply = 0x07ffffff;
+
+        nVersion = (nVersion & 0xf8000000) | (supply & 0x07ffffff);
+    }
+
+    void setVersion(int version)
+    {
+        if (version > 31)
+            version = 31;
+
+        nVersion = (version << 27) | (nVersion & 0x07ffffff);
+    }
+
+    uint32_t getSupply(void) const
+    {
+        return nVersion & 0x07ffffff;
+    }
+
+    int getVersion(void) const
+    {
+        return (nVersion & 0xf8000000) >> 27;
+    }
+
     IMPLEMENT_SERIALIZE
     (
         READWRITE(this->nVersion);
-        nVersion = this->nVersion;
+        nVersion = this->getVersion();
         READWRITE(hashPrevBlock);
         READWRITE(hashMerkleRoot);
         READWRITE(nTime);
         READWRITE(nBits);
         READWRITE(nNonce);
+        READWRITE(nVote);
+        READWRITE(nReward);
     )
 
     void SetNull()
     {
-        nVersion = CBlockHeader::CURRENT_VERSION;
+        setVersion(CBlockHeader::CURRENT_VERSION);
         hashPrevBlock = 0;
         hashMerkleRoot = 0;
         nTime = 0;
         nBits = 0;
         nNonce = 0;
+        nVote = 0;
+        nReward = 0;
     }
 
     bool IsNull() const
@@ -1300,7 +1358,7 @@ public:
 
     uint256 GetHash() const
     {
-        return Hash(BEGIN(nVersion), END(nNonce));
+        return Hash(BEGIN(nVersion), END(nReward));
     }
 
     int64 GetBlockTime() const
@@ -1353,14 +1411,18 @@ public:
         block.nTime          = nTime;
         block.nBits          = nBits;
         block.nNonce         = nNonce;
+        block.nVote          = nVote;
+        block.nReward        = nReward;
         return block;
     }
 
     uint256 BuildMerkleTree() const
     {
         vMerkleTree.clear();
+
         BOOST_FOREACH(const CTransaction& tx, vtx)
             vMerkleTree.push_back(tx.GetHash());
+
         int j = 0;
         for (int nSize = vtx.size(); nSize > 1; nSize = (nSize + 1) / 2)
         {
@@ -1466,12 +1528,13 @@ public:
 
     void print() const
     {
-        printf("CBlock(hash=%s, ver=%d, hashPrevBlock=%s, hashMerkleRoot=%s, nTime=%u, nBits=%08x, nNonce=%u, vtx=%"PRIszu")\n",
+        printf("CBlock(hash=%s, ver=%d, supply=%u, hashPrevBlock=%s, hashMerkleRoot=%s, nTime=%u, nBits=%08x, nNonce=%u, nVote=%hu, nReward=%hu, vtx=%"PRIszu")\n",
             GetHash().ToString().c_str(),
-            nVersion,
+            getVersion(),
+            getSupply(),
             hashPrevBlock.ToString().c_str(),
             hashMerkleRoot.ToString().c_str(),
-            nTime, nBits, nNonce,
+            nTime, nBits, nNonce, nVote, nReward,
             vtx.size());
         for (unsigned int i = 0; i < vtx.size(); i++)
         {
@@ -1637,6 +1700,8 @@ public:
     unsigned int nTime;
     unsigned int nBits;
     unsigned int nNonce;
+    uint16_t nVote;
+    uint16_t nReward;
 
 
     CBlockIndex()
@@ -1658,6 +1723,8 @@ public:
         nTime          = 0;
         nBits          = 0;
         nNonce         = 0;
+        nVote          = 0;
+        nReward        = 0;
     }
 
     CBlockIndex(CBlockHeader& block)
@@ -1679,6 +1746,18 @@ public:
         nTime          = block.nTime;
         nBits          = block.nBits;
         nNonce         = block.nNonce;
+        nVote          = block.nVote;
+        nReward        = block.nReward;
+    }
+
+    uint32_t getSupply(void) const
+    {
+        return nVersion & 0x07ffffff;
+    }
+
+    int getVersion(void) const
+    {
+        return (nVersion & 0xf8000000) >> 27;
     }
 
     CDiskBlockPos GetBlockPos() const {
@@ -1709,6 +1788,8 @@ public:
         block.nTime          = nTime;
         block.nBits          = nBits;
         block.nNonce         = nNonce;
+        block.nVote          = nVote;
+        block.nReward        = nReward;
         return block;
     }
 
@@ -1841,6 +1922,8 @@ public:
         READWRITE(nTime);
         READWRITE(nBits);
         READWRITE(nNonce);
+        READWRITE(nVote);
+        READWRITE(nReward);
     )
 
     uint256 GetBlockHash() const
@@ -1852,6 +1935,8 @@ public:
         block.nTime           = nTime;
         block.nBits           = nBits;
         block.nNonce          = nNonce;
+        block.nVote           = nVote;
+        block.nReward         = nReward;
         return block.GetHash();
     }
 
